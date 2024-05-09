@@ -1,7 +1,7 @@
 name: Build Status
 
 on:
-  - push
+  push:
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
           python-version: "3.11"
       - uses: actions/setup-node@v4
         with:
-          node-version: "20.12.2.x"
+          node-version: "20.12.2"
           registry-url: "https://registry.npmjs.org"
       - name: Install Python dependencies
         run: |
