@@ -1,0 +1,6 @@
+[run]
+source = Flask
+omit = 
+    tests/*
+    autoapp.py
+
