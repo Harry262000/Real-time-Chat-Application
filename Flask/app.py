@@ -1,91 +1,103 @@
-# -*- coding: utf-8 -*-
-"""The app module, containing the app factory function."""
-import logging
-import sys
+from flask import Flask, render_template, request, session, redirect, url_for
+from flask_socketio import join_room, leave_room, send, SocketIO
+import random
+from string import ascii_uppercase
 
-from flask import Flask, render_template
+app = Flask(__name__)
+app.config["SECRET_KEY"] = "hjhjsdahhds"
+socketio = SocketIO(app)
 
-from Flask import commands, public, user
-from Flask.extensions import (
-    bcrypt,
-    cache,
-    csrf_protect,
-    db,
-    debug_toolbar,
-    flask_static_digest,
-    login_manager,
-    migrate,
-)
+rooms = {}
 
+def generate_unique_code(length):
+    while True:
+        code = ""
+        for _ in range(length):
+            code += random.choice(ascii_uppercase)
+        
+        if code not in rooms:
+            break
+    
+    return code
 
-def create_app(config_object="Flask.settings"):
-    """Create application factory, as explained here: http://flask.pocoo.org/docs/patterns/appfactories/.
+@app.route("/", methods=["POST", "GET"])
+def home():
+    session.clear()
+    if request.method == "POST":
+        name = request.form.get("name")
+        code = request.form.get("code")
+        join = request.form.get("join", False)
+        create = request.form.get("create", False)
 
-    :param config_object: The configuration object to use.
-    """
-    app = Flask(__name__.split(".")[0])
-    app.config.from_object(config_object)
-    register_extensions(app)
-    register_blueprints(app)
-    register_errorhandlers(app)
-    register_shellcontext(app)
-    register_commands(app)
-    configure_logger(app)
-    return app
+        if not name:
+            return render_template("home.html", error="Please enter a name.", code=code, name=name)
 
+        if join != False and not code:
+            return render_template("home.html", error="Please enter a room code.", code=code, name=name)
+        
+        room = code
+        if create != False:
+            room = generate_unique_code(4)
+            rooms[room] = {"members": 0, "messages": []}
+        elif code not in rooms:
+            return render_template("home.html", error="Room does not exist.", code=code, name=name)
+        
+        session["room"] = room
+        session["name"] = name
+        return redirect(url_for("room"))
 
-def register_extensions(app):
-    """Register Flask extensions."""
-    bcrypt.init_app(app)
-    cache.init_app(app)
-    db.init_app(app)
-    csrf_protect.init_app(app)
-    login_manager.init_app(app)
-    debug_toolbar.init_app(app)
-    migrate.init_app(app, db)
-    flask_static_digest.init_app(app)
-    return None
+    return render_template("home.html")
 
+@app.route("/room")
+def room():
+    room = session.get("room")
+    if room is None or session.get("name") is None or room not in rooms:
+        return redirect(url_for("home"))
 
-def register_blueprints(app):
-    """Register Flask blueprints."""
-    app.register_blueprint(public.views.blueprint)
-    app.register_blueprint(user.views.blueprint)
-    return None
+    return render_template("room.html", code=room, messages=rooms[room]["messages"])
 
+@socketio.on("message")
+def message(data):
+    room = session.get("room")
+    if room not in rooms:
+        return 
+    
+    content = {
+        "name": session.get("name"),
+        "message": data["data"]
+    }
+    send(content, to=room)
+    rooms[room]["messages"].append(content)
+    print(f"{session.get('name')} said: {data['data']}")
 
-def register_errorhandlers(app):
-    """Register error handlers."""
+@socketio.on("connect")
+def connect(auth):
+    room = session.get("room")
+    name = session.get("name")
+    if not room or not name:
+        return
+    if room not in rooms:
+        leave_room(room)
+        return
+    
+    join_room(room)
+    send({"name": name, "message": "has entered the room"}, to=room)
+    rooms[room]["members"] += 1
+    print(f"{name} joined room {room}")
 
-    def render_error(error):
-        """Render error template."""
-        # If a HTTPException, pull the `code` attribute; default to 500
-        error_code = getattr(error, "code", 500)
-        return render_template(f"{error_code}.html"), error_code
+@socketio.on("disconnect")
+def disconnect():
+    room = session.get("room")
+    name = session.get("name")
+    leave_room(room)
 
-    for errcode in [401, 404, 500]:
-        app.errorhandler(errcode)(render_error)
-    return None
+    if room in rooms:
+        rooms[room]["members"] -= 1
+        if rooms[room]["members"] <= 0:
+            del rooms[room]
+    
+    send({"name": name, "message": "has left the room"}, to=room)
+    print(f"{name} has left the room {room}")
 
-
-def register_shellcontext(app):
-    """Register shell context objects."""
-
-    def shell_context():
-        """Shell context objects."""
-        return {"db": db, "User": user.models.User}
-
-    app.shell_context_processor(shell_context)
-
-
-def register_commands(app):
-    """Register Click commands."""
-    app.cli.add_command(commands.test)
-    app.cli.add_command(commands.lint)
-
-
-def configure_logger(app):
-    """Configure loggers."""
-    handler = logging.StreamHandler(sys.stdout)
-    if not app.logger.handlers:
-        app.logger.addHandler(handler)
+if __name__ == "__main__":
+    socketio.run(app, debug=True)
