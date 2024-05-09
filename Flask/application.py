@@ -3,9 +3,9 @@ from flask_socketio import join_room, leave_room, send, SocketIO
 import random
 from string import ascii_uppercase
 
-app = Flask(__name__)
-app.config["SECRET_KEY"] = "hjhjsdahhds"
-socketio = SocketIO(app)
+application = Flask(__name__)
+application.config["SECRET_KEY"] = "hjhjsdahhds"
+socketio = SocketIO(application)
 
 rooms = {}
 
@@ -20,7 +20,7 @@ def generate_unique_code(length):
     
     return code
 
-@app.route("/", methods=["POST", "GET"])
+@application.route("/", methods=["POST", "GET"])
 def home():
     session.clear()
     if request.method == "POST":
@@ -48,7 +48,7 @@ def home():
 
     return render_template("home.html")
 
-@app.route("/room")
+@application.route("/room")
 def room():
     room = session.get("room")
     if room is None or session.get("name") is None or room not in rooms:
@@ -100,4 +100,4 @@ def disconnect():
     print(f"{name} has left the room {room}")
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(application, debug=True)
