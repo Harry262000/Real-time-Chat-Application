@@ -3,7 +3,7 @@ Flask-SocketIO==5.1.1  # Provides WebSocket support for real-time communication
 eventlet==0.32.0  # Required by Flask-SocketIO for WebSocket support
 Flask-Login==0.5.0  # For user authentication management
 Flask-WTF==0.15.1  # For handling web forms and CSRF protection
-Flask-Migrate==3.1.0  # For database migrations with Flask
+Flask-Migrate==4.0.7  # For database migrations with Flask
 Flask-Bcrypt==0.7.1  # For password hashing
 Flask-Caching==1.10.1  # For caching support
 Flask-Moment==1.0.5  # For displaying timestamps in a human-readable format
