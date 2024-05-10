@@ -1,5 +1,5 @@
 Flask==2.1.0  # Web framework for building the application
-Flask-SocketIO==5.1.1  # Provides WebSocket support for real-time communication
+Flask-SocketIO==5.3.6  # Provides WebSocket support for real-time communication
 eventlet==0.32.0  # Required by Flask-SocketIO for WebSocket support
 Flask-Login==0.5.0  # For user authentication management
 Flask-WTF==0.15.1  # For handling web forms and CSRF protection
