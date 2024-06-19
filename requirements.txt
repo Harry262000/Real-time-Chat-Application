@@ -8,4 +8,4 @@ Flask-Bcrypt==0.7.1  # For password hashing
 Flask-Caching==1.10.1  # For caching support
 Flask-Moment==1.0.5  # For displaying timestamps in a human-readable format
 Flask-Bootstrap==3.3.7.1  # Integrates Bootstrap with Flask for UI components
-SQLAlchemy==1.4.26  # For database ORM
+SQLAlchemy==2.0.31  # For database ORM
